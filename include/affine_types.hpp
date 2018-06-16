@@ -16,7 +16,8 @@ template <typename T>
 class value
 {
 public:
-  constexpr explicit value(T t) noexcept(std::is_nothrow_move_constructible_v<T>): value_{std::move(t)}{}
+  template <typename ... TT, std::enable_if_t<std::is_constructible_v<T, TT...>>* = nullptr>
+  constexpr explicit value(TT&& ... t) noexcept(std::is_nothrow_constructible_v<T,TT...>): value_{std::forward<TT>(t)...}{}
 
   constexpr T& get() & noexcept { return value_;}
   constexpr T&& get() && noexcept { return std::move(value_);}
@@ -49,20 +50,26 @@ public:
   using value<T>::value;
 
   template <typename V>
-  displacement& operator/=(V v) noexcept(noexcept(std::declval<T&>()/= v)) { value_of(*this)/= v; return *this;}
+  std::enable_if_t<std::is_scalar_v<V>, displacement&>
+  operator/=(V v) noexcept(noexcept(std::declval<T&>()/= v)) { value_of(*this)/= v; return *this;}
   template <typename V>
-  displacement& operator*=(V v) noexcept(noexcept(std::declval<T&>()*= v)) { value_of(*this) *= v; return *this;}
+  std::enable_if_t<std::is_scalar_v<V>, displacement&>
+  operator*=(V v) noexcept(noexcept(std::declval<T&>()*= v)) { value_of(*this) *= v; return *this;}
 
-  template <typename R = decltype(std::declval<T>()/std::declval<T>())>
+  template <typename TT = T, typename R = std::enable_if_t<std::is_scalar_v<TT>, decltype(std::declval<TT>()/std::declval<TT>())>>
   constexpr R operator/(displacement d) const noexcept(noexcept(std::declval<T>()/std::declval<T>())){ return value_of(*this) / value_of(d);}
 
   constexpr displacement& operator+=(displacement d) noexcept(noexcept(std::declval<T&>()+= std::declval<T>())){ value_of(*this) += value_of(d); return *this; }
   constexpr displacement& operator-=(displacement d) noexcept(noexcept(std::declval<T&>()-= std::declval<T>())){ value_of(*this) -= value_of(d); return *this; }
 
-  constexpr displacement& operator++() noexcept(noexcept(++std::declval<T&>())){ value_of(*this)++; return *this;}
-  constexpr displacement operator++(int) noexcept(noexcept(++std::declval<displacement&>()) && std::is_nothrow_copy_constructible<T>{}){ auto v = *this; ++*this; return v;}
-  constexpr displacement& operator--() noexcept(noexcept(--std::declval<T&>())){ value_of(*this)--; return *this;}
-  constexpr displacement operator--(int) noexcept(noexcept(--std::declval<displacement&>()) && std::is_nothrow_copy_constructible<T>{}){ auto v = *this; --*this; return v;}
+  template <typename TT = T, typename = decltype(++std::declval<TT&>())>
+  constexpr displacement& operator++() noexcept(noexcept(++std::declval<TT&>())){ value_of(*this)++; return *this;}
+  template <typename TT = T, typename = decltype(++std::declval<TT&>())>
+  constexpr displacement operator++(int) noexcept(noexcept(++std::declval<TT&>()) && std::is_nothrow_copy_constructible_v<T>){ auto v = *this; ++*this; return v;}
+  template <typename TT = T, typename = decltype(--std::declval<TT&>())>
+  constexpr displacement& operator--() noexcept(noexcept(--std::declval<TT&>())){ value_of(*this)--; return *this;}
+  template <typename TT = T, typename = decltype(--std::declval<TT&>())>
+  constexpr displacement operator--(int) noexcept(noexcept(--std::declval<TT&>()) && std::is_nothrow_copy_constructible_v<T>){ auto v = *this; --*this; return v;}
 
 };
 
@@ -89,9 +96,9 @@ AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh) * v))
 template <typename T, typename Tag, typename V>
 constexpr
 auto operator/(displacement<T, Tag> lh, V v)
-AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh)/v))
+AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh) / v))
 
-template <typename T, typename Tag, typename D = displacement<decltype(T()-T()), Tag>>
+template <typename T, typename Tag, typename D = displacement<decltype(std::declval<T>()-std::declval<T>()), Tag>>
 class position : public value<T>
 {
 public:
@@ -102,10 +109,14 @@ public:
   constexpr position& operator+=(displacement d) noexcept(noexcept(std::declval<T&>() += value_of(d))){ value_of(*this) += value_of(d); return *this;}
   constexpr position& operator-=(displacement d) noexcept(noexcept(std::declval<T&>() -= value_of(d))){ value_of(*this) -= value_of(d); return *this;}
 
-  constexpr position& operator++() noexcept(noexcept(std::declval<position&>() += displacement(1))){ return *this += displacement(1); }
-  constexpr position operator++(int) noexcept(noexcept(++std::declval<position&>()) && std::is_nothrow_copy_constructible<T>{}){ auto v = *this; ++*this; return v;}
-  constexpr position& operator--() noexcept(noexcept(std::declval<position&>() -= displacement(1))){ return *this -= displacement(1); }
-  constexpr position operator--(int) noexcept(noexcept(--std::declval<position&>()) && std::is_nothrow_copy_constructible<T>{}){ auto v = *this; --*this; return v;}
+  template <typename TT = displacement, typename = decltype(std::declval<position&>() += ++std::declval<TT>())>
+  constexpr position& operator++() noexcept(noexcept(std::declval<TT&>() += ++std::declval<displacement>())){ return *this += ++displacement(); }
+  template <typename TT = position, typename = decltype(++std::declval<TT>())>
+  constexpr position operator++(int) noexcept(noexcept(++std::declval<TT&>()) && std::is_nothrow_copy_constructible_v<T>){ auto v = *this; ++*this; return v;}
+  template <typename TT = displacement, typename = decltype(std::declval<position&>() -= ++std::declval<TT>())>
+  constexpr position& operator--() noexcept(noexcept(std::declval<TT&>() -= ++std::declval<displacement>())){ return *this -= ++displacement(); }
+  template <typename TT = position, typename = decltype(--std::declval<TT&>())>
+  constexpr position operator--(int) noexcept(noexcept(--std::declval<TT&>()) && std::is_nothrow_copy_constructible_v<T>){ auto v = *this; --*this; return v;}
 
   template <typename P = T>
   decltype(*(P())) operator*() const noexcept(noexcept(*std::declval<T&>())){ return *value_of(*this); }
