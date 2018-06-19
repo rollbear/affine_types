@@ -10,6 +10,13 @@
     return __VA_ARGS__;           \
   }
 
+#if defined(_MSC_VER)
+#define COND_NOEXCEPT(...)
+#else
+#define COND_NOEXCEPT_CHECKS
+#define COND_NOEXCEPT(...) noexcept(__VA_ARGS__)
+#endif
+
 namespace affine
 {
 template <typename T>
@@ -17,7 +24,7 @@ class value
 {
 public:
   template <typename ... TT, std::enable_if_t<std::is_constructible_v<T, TT...>>* = nullptr>
-  constexpr explicit value(TT&& ... t) noexcept(std::is_nothrow_constructible_v<T,TT...>): value_{std::forward<TT>(t)...}{}
+  constexpr explicit value(TT&& ... t) COND_NOEXCEPT(std::is_nothrow_constructible_v<T,TT...>): value_{std::forward<TT>(t)...}{}
 
   constexpr T& get() & noexcept { return value_;}
   constexpr T&& get() && noexcept { return std::move(value_);}

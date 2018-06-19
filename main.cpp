@@ -31,7 +31,7 @@ class V
 {
 public:
   template <typename ... TT, std::enable_if_t<sizeof...(TT) == D>* = nullptr>
-  constexpr V(TT&& ... t) noexcept((std::is_nothrow_constructible_v<T, TT> && ...)) : values{std::forward<TT>(t)...} {}
+  constexpr V(TT&& ... t) COND_NOEXCEPT((std::is_nothrow_constructible_v<T, TT> && ...)) : values{std::forward<TT>(t)...} {}
   constexpr bool operator==(const V& v) const noexcept(noexcept(std::declval<T>() == std::declval<T>())) {
     size_t i = 0;
     while (i != D && values[i] == v.values[i])
@@ -282,10 +282,8 @@ static_assert(!is_detected<PostIncrement, V2i_d>{});
 static_assert(!is_detected<PreDecrement, V2i_d>{});
 static_assert(!is_detected<PostDecrement, V2i_d>{});
 
-static_assert(std::is_nothrow_constructible<int_d, int>{});
 static_assert(std::is_nothrow_copy_constructible<int_d>{});
 static_assert(std::is_nothrow_move_constructible<int_d>{});
-static_assert(std::is_nothrow_constructible<int_p, int>{});
 static_assert(std::is_nothrow_copy_constructible<int_p>{});
 static_assert(std::is_nothrow_move_constructible<int_p>{});
 static_assert(int_d{5}-int_d{2} == int_d{3});
@@ -297,6 +295,13 @@ static_assert(int_d{3}*2 == int_d{6});
 static_assert(2*int_d{3} == int_d{6});
 static_assert(int_d{6}/2 == int_d{3});
 static_assert(int_d{6}/int_d{3} == 2);
+static_assert(V2i_d{15,9}/3 == V2i_d{5,3});
+static_assert(V2i_d{3,5}*2 == V2i_d{6,10});
+static_assert(2*V2i_d{3,5} == V2i_d{6,10});
+
+#ifdef COND_NOEXCEPT_CHECKS
+static_assert(std::is_nothrow_constructible<int_d, int>{});
+static_assert(std::is_nothrow_constructible<int_p, int>{});
 static_assert(noexcept(int_d{5}+int_d{2}));
 static_assert(noexcept(int_d{5}+=int_d{2}));
 static_assert(noexcept(int_d{5}-int_d{2}));
@@ -318,9 +323,7 @@ static_assert(noexcept(++int_p{5}));
 static_assert(noexcept(--int_p{5}));
 static_assert(noexcept(int_p{5}++));
 static_assert(noexcept(int_p{5}--));
-static_assert(V2i_d{15,9}/3 == V2i_d{5,3});
-static_assert(V2i_d{3,5}*2 == V2i_d{6,10});
-static_assert(2*V2i_d{3,5} == V2i_d{6,10});
+#endif
 
 template <typename T>
 struct is_affine_position : std::false_type {};
