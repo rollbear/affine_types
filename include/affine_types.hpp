@@ -2,6 +2,7 @@
 #define AFFINE_TYPES_HPP
 
 #include <utility>
+#include <type_traits>
 
 #define AFFINE_TYPE_THRICE(...)   \
   noexcept(noexcept(__VA_ARGS__)) \
@@ -19,12 +20,12 @@
 
 namespace affine
 {
-template <typename T>
+template <typename T, bool = std::is_aggregate_v<T> && !std::is_final_v<T> && !std::is_union_v<T> && !std::is_array_v<T>>
 class value
 {
 public:
   template <typename ... TT, std::enable_if_t<std::is_constructible_v<T, TT...>>* = nullptr>
-  constexpr explicit value(TT&& ... t) COND_NOEXCEPT(std::is_nothrow_constructible_v<T,TT...>): value_{std::forward<TT>(t)...}{}
+  constexpr explicit value(TT&& ... t) COND_NOEXCEPT(std::is_nothrow_constructible_v<T,TT...>): value_(std::forward<TT>(t)...){}
 
   constexpr T& get() & noexcept { return value_;}
   constexpr T&& get() && noexcept { return std::move(value_);}
@@ -32,6 +33,18 @@ public:
   constexpr const T&& get() const && noexcept { return std::move(value_);}
 private:
   T value_;
+};
+
+template <typename T>
+struct value<T, true> : T
+{
+  template <typename ... TT, typename = decltype(T{std::declval<TT>()...})>
+  constexpr explicit value(TT&& ... t) noexcept(noexcept(T{std::declval<TT>()...})): T{std::forward<TT>(t)...}{}
+
+  constexpr T& get() & noexcept { return *this;}
+  constexpr T&& get() && noexcept { return std::move(*this);}
+  constexpr const T& get() const & noexcept { return *this;}
+  constexpr const T&& get() const && noexcept { return std::move(*this);}
 };
 
 template <typename T>
