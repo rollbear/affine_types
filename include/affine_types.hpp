@@ -53,15 +53,6 @@ constexpr auto value_of(T&& t) noexcept -> decltype(std::forward<T>(t).get())
   return std::forward<T>(t).get();
 }
 
-template <typename T>
-constexpr
-auto operator==(value<T> lh, value<T> rh)
-AFFINE_TYPE_THRICE(value_of(lh) == value_of(rh))
-
-template <typename T>
-constexpr
-auto operator!=(value<T> lh, value<T> rh)
-AFFINE_TYPE_THRICE(value_of(lh != value_of(rh)))
 
 template <typename T, typename Tag>
 class displacement : public value<T>
@@ -93,30 +84,47 @@ public:
 
 };
 
+constexpr std::false_type is_displacement_type(...) { return {};}
+template <typename T, typename Tag>
+constexpr std::true_type is_displacement_type(const displacement<T, Tag>*) { return {};}
+
+template <typename T>
+using is_displacement = decltype(is_displacement_type(std::declval<T*>()));
+
 template <typename T, typename Tag>
 constexpr
-auto operator+(displacement<T, Tag> lh, displacement<T, Tag> rh)
-AFFINE_TYPE_THRICE( displacement<T, Tag>{ value_of(lh) + value_of(rh)} )
+auto operator==(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) == value_of(rh))
 
 template <typename T, typename Tag>
 constexpr
-auto operator-(displacement<T, Tag> lh, displacement<T, Tag> rh)
-AFFINE_TYPE_THRICE( displacement<T, Tag>{ value_of(lh) - value_of(rh)} )
+auto operator!=(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) != value_of(rh))
 
-template <typename T, typename Tag, typename V>
+template <typename D, std::enable_if_t<is_displacement<D>{}>* = nullptr>
 constexpr
-auto operator*(displacement<T, Tag> lh, V v)
-AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh) * v))
+auto operator+(D lh, D rh)
+AFFINE_TYPE_THRICE( D{ value_of(lh) + value_of(rh)} )
 
-template <typename T, typename Tag, typename V>
+template <typename D, std::enable_if_t<is_displacement<D>{}>* = nullptr>
 constexpr
-auto operator*(V v, displacement<T, Tag> lh)
-AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh) * v))
+auto operator-(D lh, D rh)
+AFFINE_TYPE_THRICE( D{ value_of(lh) - value_of(rh)} )
 
-template <typename T, typename Tag, typename V>
+template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
 constexpr
-auto operator/(displacement<T, Tag> lh, V v)
-AFFINE_TYPE_THRICE(displacement<T, Tag>(value_of(lh) / v))
+auto operator*(D lh, V v)
+AFFINE_TYPE_THRICE(D(value_of(lh) * v))
+
+template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+constexpr
+auto operator*(V v, D lh)
+AFFINE_TYPE_THRICE(D(value_of(lh) * v))
+
+template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+constexpr
+auto operator/(D lh, V v)
+AFFINE_TYPE_THRICE(D(value_of(lh) / v))
 
 template <typename T, typename Tag, typename D = displacement<decltype(std::declval<T>()-std::declval<T>()), Tag>>
 class position : public value<T>
@@ -143,6 +151,23 @@ public:
   template <typename P = T>
   decltype(&*P()) operator->() const noexcept { return value_of(*this);}
 };
+
+constexpr std::false_type is_position_type(...) { return {};}
+template <typename T, typename Tag, typename D>
+constexpr std::true_type is_position_type(const position<T, Tag, D>*) { return {};}
+
+template <typename T>
+using is_position = decltype(is_position_type(std::declval<T*>()));
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator==(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) == value_of(rh))
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator!=(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) != value_of(rh))
 
 template <typename T, typename Tag, typename D>
 constexpr
