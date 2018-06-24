@@ -101,6 +101,26 @@ constexpr
 auto operator!=(displacement<T, Tag> lh, displacement<T, Tag> rh)
 AFFINE_TYPE_THRICE(value_of(lh) != value_of(rh))
 
+template <typename T, typename Tag>
+constexpr
+auto operator<(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) < value_of(rh))
+
+template <typename T, typename Tag>
+constexpr
+auto operator<=(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) <= value_of(rh))
+
+template <typename T, typename Tag>
+constexpr
+auto operator>(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) > value_of(rh))
+
+template <typename T, typename Tag>
+constexpr
+auto operator>=(displacement<T, Tag> lh, displacement<T, Tag> rh)
+AFFINE_TYPE_THRICE(value_of(lh) >= value_of(rh))
+
 template <typename D, std::enable_if_t<is_displacement<D>{}>* = nullptr>
 constexpr
 auto operator+(D lh, D rh)
@@ -168,6 +188,26 @@ template <typename T, typename Tag, typename D>
 constexpr
 auto operator!=(position<T, Tag, D> lh, position<T, Tag, D> rh)
 AFFINE_TYPE_THRICE(value_of(lh) != value_of(rh))
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator<(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) < value_of(rh))
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator<=(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) <= value_of(rh))
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator>(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) > value_of(rh))
+
+template <typename T, typename Tag, typename D>
+constexpr
+auto operator>=(position<T, Tag, D> lh, position<T, Tag, D> rh)
+AFFINE_TYPE_THRICE(value_of(lh) >= value_of(rh))
 
 template <typename T, typename Tag, typename D>
 constexpr
