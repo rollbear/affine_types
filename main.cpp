@@ -1,8 +1,8 @@
-#include <iostream>
 #include <affine_types.hpp>
 #include <deque>
 #include <cassert>
 #include <algorithm>
+#include <cstdio>
 
 
 template <typename T>
@@ -117,6 +117,18 @@ template <typename A, typename B = A>
 template <typename A, typename B = A>
   using Multiplication = decltype(std::declval<A>() * std::declval<B>());
 
+template <typename A, typename B = A>
+  using LessThan = decltype(std::declval<A>() < std::declval<B>());
+
+template <typename A, typename B = A>
+  using LessEqual = decltype(std::declval<A>() <= std::declval<B>());
+
+template <typename A, typename B = A>
+  using GreaterThan = decltype(std::declval<A>() > std::declval<B>());
+
+template <typename A, typename B = A>
+  using GreaterEqual = decltype(std::declval<A>() >= std::declval<B>());
+
 template <typename A>
 using Dereference = decltype(*std::declval<A>());
 
@@ -132,11 +144,17 @@ using PreDecrement = decltype(--std::declval<A&>());
 template <typename A>
 using PostDecrement = decltype(std::declval<A&>()--);
 
+template <typename ...>
+struct void_t_helper { using type = void;};
+
+template <typename ... T>
+using void_t = typename void_t_helper<T...>::type;
+
 template <template <typename ...> class, typename...>
   struct detected_helper : std::false_type {};
 
 template <template <typename ...> class D, typename ... Ts>
-  struct detected_helper<D, std::void_t<D<Ts...>>, Ts...> : std::true_type {};
+  struct detected_helper<D, void_t<D<Ts...>>, Ts...> : std::true_type {};
 
 template <template <typename ...> class D, typename ... Ts>
   using is_detected = typename detected_helper<D, void, Ts...>::type;
@@ -247,6 +265,71 @@ static_assert(is_detected<Multiplication, int, V2i_d>{});
 static_assert(std::is_same<Multiplication<V2i_d, int>, V2i_d>{});
 static_assert(std::is_same<Multiplication<int, V2i_d>, V2i_d>{});
 
+
+static_assert(is_detected<LessThan, int_p>{});
+static_assert(!is_detected<LessThan, int_p, int>{});
+static_assert(!is_detected<LessThan, int, int_p>{});
+static_assert(!is_detected<LessThan, int_p, int_d>{});
+static_assert(!is_detected<LessThan, int_d, int_p>{});
+
+static_assert(is_detected<LessThan, int_d>{});
+static_assert(!is_detected<LessThan, int_d, int>{});
+static_assert(!is_detected<LessThan, int, int_d>{});
+
+static_assert(!is_detected<LessThan, V2i_p>{});
+static_assert(!is_detected<LessThan, V2i_p, V2i_d>{});
+static_assert(!is_detected<LessThan, V2i_d, V2i_p>{});
+static_assert(!is_detected<LessThan, V2i_p>{});
+
+
+static_assert(is_detected<LessEqual, int_p>{});
+static_assert(!is_detected<LessEqual, int_p, int>{});
+static_assert(!is_detected<LessEqual, int, int_p>{});
+static_assert(!is_detected<LessEqual, int_p, int_d>{});
+static_assert(!is_detected<LessEqual, int_d, int_p>{});
+
+static_assert(is_detected<LessEqual, int_d>{});
+static_assert(!is_detected<LessEqual, int_d, int>{});
+static_assert(!is_detected<LessEqual, int, int_d>{});
+
+static_assert(!is_detected<LessEqual, V2i_p>{});
+static_assert(!is_detected<LessEqual, V2i_p, V2i_d>{});
+static_assert(!is_detected<LessEqual, V2i_d, V2i_p>{});
+static_assert(!is_detected<LessEqual, V2i_p>{});
+
+
+static_assert(is_detected<GreaterThan, int_p>{});
+static_assert(!is_detected<GreaterThan, int_p, int>{});
+static_assert(!is_detected<GreaterThan, int, int_p>{});
+static_assert(!is_detected<GreaterThan, int_p, int_d>{});
+static_assert(!is_detected<GreaterThan, int_d, int_p>{});
+
+static_assert(is_detected<GreaterThan, int_d>{});
+static_assert(!is_detected<GreaterThan, int_d, int>{});
+static_assert(!is_detected<GreaterThan, int, int_d>{});
+
+static_assert(!is_detected<GreaterThan, V2i_p>{});
+static_assert(!is_detected<GreaterThan, V2i_p, V2i_d>{});
+static_assert(!is_detected<GreaterThan, V2i_d, V2i_p>{});
+static_assert(!is_detected<GreaterThan, V2i_p>{});
+
+
+static_assert(is_detected<GreaterEqual, int_p>{});
+static_assert(!is_detected<GreaterEqual, int_p, int>{});
+static_assert(!is_detected<GreaterEqual, int, int_p>{});
+static_assert(!is_detected<GreaterEqual, int_p, int_d>{});
+static_assert(!is_detected<GreaterEqual, int_d, int_p>{});
+
+static_assert(is_detected<GreaterEqual, int_d>{});
+static_assert(!is_detected<GreaterEqual, int_d, int>{});
+static_assert(!is_detected<GreaterEqual, int, int_d>{});
+
+static_assert(!is_detected<GreaterEqual, V2i_p>{});
+static_assert(!is_detected<GreaterEqual, V2i_p, V2i_d>{});
+static_assert(!is_detected<GreaterEqual, V2i_d, V2i_p>{});
+static_assert(!is_detected<GreaterEqual, V2i_p>{});
+
+
 static_assert(!is_detected<Dereference, int_p>{});
 static_assert(is_detected<Dereference, Spp>{});
 static_assert(std::is_same<S&, decltype(*std::declval<Spp>())>{});
@@ -298,6 +381,26 @@ static_assert(int_d{6}/int_d{3} == 2);
 static_assert(V2i_d{15,9}/3 == V2i_d{5,3});
 static_assert(V2i_d{3,5}*2 == V2i_d{6,10});
 static_assert(2*V2i_d{3,5} == V2i_d{6,10});
+static_assert(int_p{5} < int_p{6});
+static_assert(!(int_p{5} < int_p{5}));
+static_assert(int_p{5} <= int_p{6});
+static_assert(int_p{5} <= int_p{5});
+static_assert(!(int_p{5} <= int_p{4}));
+static_assert(int_p{5} > int_p{4});
+static_assert(!(int_p{4} > int_p{4}));
+static_assert(int_p{5} >= int_p{5});
+static_assert(int_p{6} >= int_p{6});
+static_assert(!(int_p{5} >= int_p{6}));
+static_assert(int_d{5} < int_d{6});
+static_assert(!(int_d{5} < int_d{5}));
+static_assert(int_d{5} <= int_d{6});
+static_assert(int_d{5} <= int_d{5});
+static_assert(!(int_d{5} <= int_d{4}));
+static_assert(int_d{5} > int_d{4});
+static_assert(!(int_d{4} > int_d{4}));
+static_assert(int_d{5} >= int_d{5});
+static_assert(int_d{6} >= int_d{6});
+static_assert(!(int_d{5} >= int_d{6}));
 
 #ifdef COND_NOEXCEPT_CHECKS
 static_assert(std::is_nothrow_constructible<int_d, int>{});
@@ -323,6 +426,15 @@ static_assert(noexcept(++int_p{5}));
 static_assert(noexcept(--int_p{5}));
 static_assert(noexcept(int_p{5}++));
 static_assert(noexcept(int_p{5}--));
+static_assert(noexcept(int_p{5} < int_p{5}));
+static_assert(noexcept(int_p{5} <= int_p{5}));
+static_assert(noexcept(int_p{5} > int_p{5}));
+static_assert(noexcept(int_p{5} >= int_p{5}));
+static_assert(noexcept(int_d{5} < int_d{5}));
+static_assert(noexcept(int_d{5} <= int_d{5}));
+static_assert(noexcept(int_d{5} > int_d{5}));
+static_assert(noexcept(int_d{5} >= int_d{5}));
+
 #endif
 
 template <typename T>

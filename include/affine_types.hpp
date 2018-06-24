@@ -13,18 +13,24 @@
 
 #if defined(_MSC_VER)
 #define COND_NOEXCEPT(...)
+#define IS_AGGREGATE(...) (std::is_class_v<__VA_ARGS__> && std::is_pod_v<__VA_ARGS__>)
 #else
 #define COND_NOEXCEPT_CHECKS
 #define COND_NOEXCEPT(...) noexcept(__VA_ARGS__)
+#if defined(__cpp_lib_is_aggregate) || (defined(_LIBCPP_CLANG_VER) && _LIBCPP_CLANG_VER >= 500)
+#define IS_AGGREGATE(...) std::is_aggregate_v<__VA_ARGS__>
+#else
+#define IS_AGGREGATE(...) (std::is_class_v<__VA_ARGS__> && std::is_pod_v<__VA_ARGS__>)
+#endif
 #endif
 
 namespace affine
 {
-template <typename T, bool = std::is_aggregate_v<T> && !std::is_final_v<T> && !std::is_union_v<T> && !std::is_array_v<T>>
+template <typename T, bool = IS_AGGREGATE(T) && !std::is_final_v<T> && !std::is_union_v<T> && !std::is_array_v<T>>
 class value
 {
 public:
-  template <typename ... TT, std::enable_if_t<std::is_constructible_v<T, TT...>>* = nullptr>
+  template <typename ... TT, typename = std::enable_if_t<std::is_constructible_v<T, TT...>>>
   constexpr explicit value(TT&& ... t) COND_NOEXCEPT(std::is_nothrow_constructible_v<T,TT...>): value_(std::forward<TT>(t)...){}
 
   constexpr T& get() & noexcept { return value_;}
@@ -121,27 +127,27 @@ constexpr
 auto operator>=(displacement<T, Tag> lh, displacement<T, Tag> rh)
 AFFINE_TYPE_THRICE(value_of(lh) >= value_of(rh))
 
-template <typename D, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+template <typename D, typename = std::enable_if_t<is_displacement<D>{}>>
 constexpr
 auto operator+(D lh, D rh)
 AFFINE_TYPE_THRICE( D{ value_of(lh) + value_of(rh)} )
 
-template <typename D, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+template <typename D, typename = std::enable_if_t<is_displacement<D>{}>>
 constexpr
 auto operator-(D lh, D rh)
 AFFINE_TYPE_THRICE( D{ value_of(lh) - value_of(rh)} )
 
-template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+template <typename D, typename V, typename = std::enable_if_t<is_displacement<D>{}>>
 constexpr
 auto operator*(D lh, V v)
 AFFINE_TYPE_THRICE(D(value_of(lh) * v))
 
-template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+template <typename D, typename V, typename = std::enable_if_t<is_displacement<D>{}>>
 constexpr
 auto operator*(V v, D lh)
 AFFINE_TYPE_THRICE(D(value_of(lh) * v))
 
-template <typename D, typename V, std::enable_if_t<is_displacement<D>{}>* = nullptr>
+template <typename D, typename V, typename = std::enable_if_t<is_displacement<D>{}>>
 constexpr
 auto operator/(D lh, V v)
 AFFINE_TYPE_THRICE(D(value_of(lh) / v))
@@ -171,13 +177,6 @@ public:
   template <typename P = T>
   decltype(&*P()) operator->() const noexcept { return value_of(*this);}
 };
-
-constexpr std::false_type is_position_type(...) { return {};}
-template <typename T, typename Tag, typename D>
-constexpr std::true_type is_position_type(const position<T, Tag, D>*) { return {};}
-
-template <typename T>
-using is_position = decltype(is_position_type(std::declval<T*>()));
 
 template <typename T, typename Tag, typename D>
 constexpr
